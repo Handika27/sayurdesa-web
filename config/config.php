@@ -3,17 +3,26 @@ date_default_timezone_set('Asia/Jakarta');
 session_start();
 
 // Database configuration
-$host = 'localhost';
-$dbname = 'sayurdesa';
-$username = 'root';
-$password = '';
+// 1. Cek apakah ada URL database dari Railway
+$db_url = getenv('DATABASE_URL');
 
-try {
-    $pdo = new PDO("mysql:host=$host;dbname=$dbname;charset=utf8", $username, $password);
-    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
-} catch(PDOException $e) {
-    die("Database connection failed: " . $e->getMessage());
+if ($db_url) {
+    // Jika jalan di Railway, ambil data secara otomatis dari URL aman
+    $db_parts = parse_url($db_url);
+    $host = $db_parts['host'];
+    $user = $db_parts['user'];
+    $pass = $db_parts['pass'];
+    $db   = ltrim($db_parts['path'], '/');
+    $port = isset($db_parts['port']) ? $db_parts['port'] : 3306;
+
+    $conn = mysqli_connect($host, $user, $pass, $db, $port);
+} else {
+    // 2. Jika jalan di Laptop (XAMPP), gunakan localhost milik Anda sendiri
+    $conn = mysqli_connect('localhost', 'root', '', 'sayurdesa');
+}
+
+if (!$conn) {
+    die("Koneksi gagal: " . mysqli_connect_error());
 }
 
 // Check if user is logged in
