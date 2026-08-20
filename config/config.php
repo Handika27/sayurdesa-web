@@ -1,28 +1,37 @@
 <?php
 date_default_timezone_set('Asia/Jakarta');
-session_start();
-
-// Database configuration
-// 1. Cek apakah ada URL database dari Railway
-$db_url = getenv('DATABASE_URL');
-
-if ($db_url) {
-    // Jika jalan di Railway, ambil data secara otomatis dari URL aman
-    $db_parts = parse_url($db_url);
-    $host = $db_parts['host'];
-    $user = $db_parts['user'];
-    $pass = $db_parts['pass'];
-    $db   = ltrim($db_parts['path'], '/');
-    $port = isset($db_parts['port']) ? $db_parts['port'] : 3306;
-
-    $conn = mysqli_connect($host, $user, $pass, $db, $port);
-} else {
-    // 2. Jika jalan di Laptop (XAMPP), gunakan localhost milik Anda sendiri
-    $conn = mysqli_connect('localhost', 'root', '', 'sayurdesa');
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
 }
 
-if (!$conn) {
-    die("Koneksi gagal: " . mysqli_connect_error());
+// Database configuration (Aman untuk Railway & Localhost menggunakan PDO)
+$db_url = getenv('DATABASE_URL');
+
+try {
+    if ($db_url) {
+        // Jika berjalan di Railway
+        $db_parts = parse_url($db_url);
+        $host = $db_parts['host'];
+        $username = $db_parts['user'];
+        $password = $db_parts['pass'];
+        $dbname = ltrim($db_parts['path'], '/');
+        $port = isset($db_parts['port']) ? $db_parts['port'] : 3306;
+
+        $pdo = new PDO("mysql:host=$host;port=$port;dbname=$dbname;charset=utf8", $username, $password);
+    } else {
+        // Jika berjalan di Laptop (XAMPP)
+        $host = 'localhost';
+        $dbname = 'sayurdesa';
+        $username = 'root';
+        $password = '';
+
+        $pdo = new PDO("mysql:host=$host;dbname=$dbname;charset=utf8", $username, $password);
+    }
+
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+} catch(PDOException $e) {
+    die("Database connection failed: " . $e->getMessage());
 }
 
 // Check if user is logged in
@@ -78,7 +87,6 @@ function get_cart_count() {
         return 0;
     }
     
-    // Cari cart user
     $stmt = $pdo->prepare("SELECT id FROM carts WHERE user_id = ? LIMIT 1");
     $stmt->execute([$_SESSION['user_id']]);
     $cart = $stmt->fetch();
@@ -87,7 +95,6 @@ function get_cart_count() {
         return 0;
     }
     
-    // Hitung item di cart
     $stmt = $pdo->prepare("SELECT SUM(quantity) as total FROM cart_items WHERE cart_id = ?");
     $stmt->execute([$cart['id']]);
     $result = $stmt->fetch();
@@ -120,10 +127,6 @@ function get_payment_settings() {
     return $stmt->fetch();
 }
 
-/**
- * Dapatkan admin_id dari user yang sedang login
- * @return int|null
- */
 function get_current_admin_id() {
     if (is_logged_in() && (is_admin() || is_super_admin())) {
         return $_SESSION['user_id'];
@@ -131,12 +134,6 @@ function get_current_admin_id() {
     return null;
 }
 
-/**
- * Filter query berdasarkan admin_id (jika bukan super admin)
- * @param string $table Nama tabel
- * @param string $alias Alias tabel (opsional)
- * @return string
- */
 function get_admin_filter($table, $alias = '') {
     if (is_super_admin()) {
         return '1=1';
