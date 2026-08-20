@@ -4,38 +4,36 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-$db_url = getenv('DATABASE_URL');
-$host = getenv('MYSQLHOST');
+// Kredensial langsung ke Railway (Public Network)
+$host = 'trolley.proxy.rlwy.net';
+$port = '21802';
+$dbname = 'railway';
+$username = 'root';
+$password = 'xprpUCBpKawiNjfnVGUxJkUemMLJttIK';
 
 try {
-    if ($host) {
-        // Menggunakan variabel spesifik Railway
-        $username = getenv('MYSQLUSER');
-        $password = getenv('MYSQLPASSWORD');
-        $dbname = getenv('MYSQLDATABASE');
-        $port = getenv('MYSQLPORT') ?: 3306;
-
-        $dsn = "mysql:host=$host;port=$port;dbname=$dbname;charset=utf8mb4";
-        $pdo = new PDO($dsn, $username, $password);
-    } elseif ($db_url) {
-        // Menggunakan connection URL langsung jika ada
-        $pdo = new PDO($db_url);
-    } else {
-        // Localhost XAMPP
+    // Coba koneksi ke Railway terlebih dahulu
+    $dsn = "mysql:host=$host;port=$port;dbname=$dbname;charset=utf8mb4";
+    $pdo = new PDO($dsn, $username, $password, [
+        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+    ]);
+} catch(PDOException $e) {
+    // Fallback otomatis ke XAMPP lokal jika dijalankan di laptop
+    try {
         $host = 'localhost';
         $dbname = 'sayurdesa';
         $username = 'root';
         $password = '';
-
+        
         $dsn = "mysql:host=$host;dbname=$dbname;charset=utf8mb4";
-        $pdo = new PDO($dsn, $username, $password);
+        $pdo = new PDO($dsn, $username, $password, [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+        ]);
+    } catch(PDOException $e2) {
+        die("GAGAL KONEKSI DATABASE: " . $e->getMessage());
     }
-
-    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
-} catch(PDOException $e) {
-    // Tampilkan detail error driver agar kita tahu persis bagian mana yang kurang
-    die("GAGAL KONEKSI DATABASE: " . $e->getMessage() . "<br>Cek apakah ekstensi pdo_mysql aktif di server.");
 }
 
 // Check if user is logged in
