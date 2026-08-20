@@ -9,27 +9,22 @@ $db_url = getenv('DATABASE_URL');
 
 try {
     if ($db_url) {
-        // Jika berjalan di Railway
-        $db_parts = parse_url($db_url);
-        $host = $db_parts['host'];
-        $username = $db_parts['user'];
-        $password = $db_parts['pass'];
-        $dbname = ltrim($db_parts['path'], '/');
-        $port = isset($db_parts['port']) ? $db_parts['port'] : 3306;
-
-        $pdo = new PDO("mysql:host=$host;port=$port;dbname=$dbname;charset=utf8", $username, $password);
+        // Menggunakan langsung format DSN dari lingkungan Railway secara aman
+        $pdo = new PDO($db_url, null, null, [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+        ]);
     } else {
-        // Jika berjalan di Laptop (XAMPP)
         $host = 'localhost';
         $dbname = 'sayurdesa';
         $username = 'root';
         $password = '';
 
-        $pdo = new PDO("mysql:host=$host;dbname=$dbname;charset=utf8", $username, $password);
+        $pdo = new PDO("mysql:host=$host;dbname=$dbname;charset=utf8mb4", $username, $password, [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+        ]);
     }
-
-    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
 } catch(PDOException $e) {
     die("Database connection failed: " . $e->getMessage());
 }
