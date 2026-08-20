@@ -1,12 +1,13 @@
 FROM php:8.2-apache
 
-# Menginstal driver database
+# Mengaktifkan ekstensi database untuk PHP
 RUN docker-php-ext-install pdo pdo_mysql mysqli
 
-# Menyalin seluruh file proyek ke web root Apache
+# Menyalin file proyek ke direktori web Apache
 COPY . /var/www/html/
 
-# Mengatur agar Apache menggunakan port dinamis dari Railway
-RUN sed -i 's/80/8080/g' /etc/apache2/sites-available/000-default.conf /etc/apache2/ports.conf
+# Mengatur port Apache agar otomatis membaca port dari Railway ($PORT)
+ENV PORT=8080
+RUN sed -i 's/80/${PORT}/g' /etc/apache2/sites-available/000-default.conf /etc/apache2/ports.conf
 
 EXPOSE 8080
