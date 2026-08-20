@@ -8,19 +8,30 @@ if (session_status() === PHP_SESSION_NONE) {
 $db_url = getenv('DATABASE_URL');
 
 try {
-    if ($db_url) {
-        // Menggunakan langsung format DSN dari lingkungan Railway secara aman
-        $pdo = new PDO($db_url, null, null, [
+    // Cek apakah variabel lingkungan Railway tersedia
+    $host = getenv('MYSQLHOST');
+    
+    if ($host) {
+        // Jika berjalan di Railway menggunakan environment variables terpisah
+        $username = getenv('MYSQLUSER');
+        $password = getenv('MYSQLPASSWORD');
+        $dbname = getenv('MYSQLDATABASE');
+        $port = getenv('MYSQLPORT') ?: 3306;
+
+        $dsn = "mysql:host=$host;port=$port;dbname=$dbname;charset=utf8mb4";
+        $pdo = new PDO($dsn, $username, $password, [
             PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
         ]);
     } else {
+        // Jika berjalan di Laptop (XAMPP)
         $host = 'localhost';
         $dbname = 'sayurdesa';
         $username = 'root';
         $password = '';
 
-        $pdo = new PDO("mysql:host=$host;dbname=$dbname;charset=utf8mb4", $username, $password, [
+        $dsn = "mysql:host=$host;dbname=$dbname;charset=utf8mb4";
+        $pdo = new PDO($dsn, $username, $password, [
             PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
         ]);
